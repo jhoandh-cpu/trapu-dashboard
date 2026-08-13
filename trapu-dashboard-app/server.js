@@ -61,19 +61,26 @@ async function wooSales(dateMin, dateMax) {
   };
 }
 
-// Klaviyo: opcional, para el abandono de checkout del día.
-async function klaviyoCount(metricId, startISO, endISO) {
+// Klaviyo: métricas de la tienda. PLACED_ORDER da ventas/órdenes (aprox), ThCWbv el checkout.
+const KL_PLACED = "XvvKP6";
+async function klaviyoAgg(metricId, measurements, startISO, endISO) {
   const key = process.env.KLAVIYO_API_KEY;
   if (!key) return null;
   const r = await fetch("https://a.klaviyo.com/api/metric-aggregates/", {
     method: "POST",
     headers: { Authorization: `Klaviyo-API-Key ${key}`, "Content-Type": "application/json", accept: "application/json", revision: "2024-10-15" },
-    body: JSON.stringify({ data: { type: "metric-aggregate", attributes: { metric_id: metricId, measurements: ["count"], interval: "day", timezone: TZ, filter: [`greater-or-equal(datetime,${startISO})`, `less-than(datetime,${endISO})`] } } })
+    body: JSON.stringify({ data: { type: "metric-aggregate", attributes: { metric_id: metricId, measurements, interval: "day", timezone: TZ, filter: [`greater-or-equal(datetime,${startISO})`, `less-than(datetime,${endISO})`] } } })
   });
   if (!r.ok) throw new Error(`Klaviyo ${r.status}`);
   const j = await r.json();
-  const m = j?.data?.attributes?.data?.[0]?.measurements?.count || [];
-  return m.reduce((a, b) => a + (b || 0), 0);
+  const meas = j?.data?.attributes?.data?.[0]?.measurements || {};
+  const out = {};
+  for (const m of measurements) out[m] = (meas[m] || []).reduce((a, b) => a + (b || 0), 0);
+  return out;
+}
+async function klaviyoCount(metricId, startISO, endISO) {
+  const o = await klaviyoAgg(metricId, ["count"], startISO, endISO);
+  return o ? o.count : null;
 }
 
 // GA4: opcional (tráfico/conversión/funnel). Auth con service account (JWT RS256).
@@ -112,10 +119,19 @@ async function computeSnapshot() {
   let woToday = null, woMTD = null;
   try { woToday = await wooSales(et.dateStr, et.dateStr); src.woo = !!woToday; } catch (e) { src.wooErr = e.message; }
   try { woMTD = await wooSales(monthStart, et.dateStr); } catch (e) {}
-  const revToday = woToday ? woToday.total_sales : 0;
-  const ordToday = woToday ? woToday.orders : 0;
-  const mtdRev = woMTD ? woMTD.total_sales : revToday;
-  const mtdOrd = woMTD ? woMTD.orders : ordToday;
+  let revToday = woToday ? woToday.total_sales : 0;
+  let ordToday = woToday ? woToday.orders : 0;
+  let mtdRev = woMTD ? woMTD.total_sales : revToday;
+  let mtdOrd = woMTD ? woMTD.orders : ordToday;
+  // Si no hay WooCommerce, usar Klaviyo (Placed Order) como fuente de ventas (aprox, en vivo)
+  if (!woToday) {
+    try {
+      const kT = await klaviyoAgg(KL_PLACED, ["count", "sum_value"], `${et.dateStr}T00:00:00`, `${nextDay(et)}T00:00:00`);
+      const kM = await klaviyoAgg(KL_PLACED, ["count", "sum_value"], `${monthStart}T00:00:00`, `${nextDay(et)}T00:00:00`);
+      if (kT) { revToday = kT.sum_value; ordToday = kT.count; src.sales = "klaviyo"; }
+      if (kM) { mtdRev = kM.sum_value; mtdOrd = kM.count; }
+    } catch (e) { src.klSalesErr = e.message; }
+  } else { src.sales = "woo"; }
 
   // Klaviyo checkout (opcional)
   let ckToday = null;
