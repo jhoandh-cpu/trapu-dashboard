@@ -1,0 +1,15 @@
+{
+  "name": "trapu-proyeccion-ventas",
+  "version": "1.0.0",
+  "description": "Dashboard alojado de proyección de ventas para Trap University (WooCommerce + Klaviyo + GA4) con envío a Slack 2x/día.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "slack": "node server.js --slack-once"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

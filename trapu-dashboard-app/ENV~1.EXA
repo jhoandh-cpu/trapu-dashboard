@@ -1,0 +1,20 @@
+# Copia este archivo como .env para correr local, o pega estas variables en Render.
+STORE_TZ=America/Los_Angeles
+DAILY_GOAL=1000
+
+# WooCommerce (obligatorio — da las ventas exactas)
+WOO_URL=https://trapuniversity.com
+WOO_KEY=ck_xxxxxxxxxxxxxxxxxxxxxxxx
+WOO_SECRET=cs_xxxxxxxxxxxxxxxxxxxxxxxx
+
+# Klaviyo (opcional — abandono de checkout)
+KLAVIYO_API_KEY=pk_xxxxxxxxxxxxxxxxxxxxxxxx
+
+# Google Analytics 4 (opcional — tráfico/conversión)
+GA_PROPERTY_ID=420616449
+GA_SA_JSON={"type":"service_account","project_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n","client_email":"...@...iam.gserviceaccount.com"}
+
+# Slack (para el envío 2x/día)
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/XXX/YYY/ZZZ
+DASHBOARD_URL=https://trapu-proyeccion.onrender.com
+CRON_TOKEN=algunapalabrasecreta

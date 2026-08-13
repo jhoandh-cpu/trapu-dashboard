@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trap University — Proyección de ventas</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+<style>
+:root{color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f6f7f9;color:#16181d;padding:18px;line-height:1.4}
+.wrap{max-width:980px;margin:0 auto}
+.head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.title{font-size:20px;font-weight:700}.title span{color:#7a3ff2}
+.sub{font-size:13px;color:#666}.updated{font-size:12px;color:#888}
+.section{font-size:13px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#7a3ff2;margin:20px 0 4px;padding-bottom:4px;border-bottom:2px solid #ece4ff}
+.goal{border-radius:12px;padding:12px 16px;margin:12px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-weight:600}
+.goal.ok{background:#e5f7ec;color:#12813f;border:1px solid #b8e6c8}.goal.bad{background:#fdeaea;color:#c0392b;border:1px solid #f3caca}
+.bar{height:8px;background:#e6e6ea;border-radius:6px;overflow:hidden;margin:12px 0 4px}.bar>div{height:100%;background:linear-gradient(90deg,#7a3ff2,#b98bff);width:0%}
+.barlbl{font-size:12px;color:#666;display:flex;justify-content:space-between}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:10px 0}.grid.g3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:780px){.grid,.grid.g3{grid-template-columns:repeat(2,1fr)}}
+.card{background:#fff;border:1px solid #ececf0;border-radius:12px;padding:14px}
+.card h3{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#888;font-weight:600;margin-bottom:8px}
+.big{font-size:24px;font-weight:700;line-height:1.1}.big small{font-size:13px;color:#888;font-weight:500}
+.sofar{font-size:12px;color:#555;margin-top:6px}.rng{font-size:11px;color:#999;margin-top:2px}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:8px}
+.up{background:#e5f7ec;color:#12813f}.down{background:#fdeaea;color:#c0392b}.flat{background:#eef0f3;color:#555}
+.panel{background:#fff;border:1px solid #ececf0;border-radius:12px;padding:16px;margin-bottom:14px}.panel h2{font-size:14px;margin-bottom:10px}
+.cols{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}@media(max-width:780px){.cols{grid-template-columns:1fr}}
+.chartbox{position:relative;height:230px}.chartbox.sm{height:190px}
+.note{font-size:12px;color:#7a7a85;background:#faf8ff;border:1px solid #ece4ff;border-radius:8px;padding:8px 10px;margin-top:8px}
+.diag{font-size:13px;border-radius:8px;padding:10px 12px;margin-top:10px;font-weight:500}
+.diag.ok{background:#e5f7ec;color:#12813f;border:1px solid #b8e6c8}.diag.bad{background:#fff6e8;color:#9a6a00;border:1px solid #f0d9a8}
+.frow{display:grid;grid-template-columns:1.3fr 1fr auto;gap:8px;align-items:center;font-size:13px;padding:7px 0;border-bottom:1px solid #f2f2f5}.frow .fv{font-weight:700;text-align:right}
+.mrow{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid #f2f2f5}.mrow b{font-weight:700}
+.demo{background:#fff8e6;border:1px solid #f0dca0;color:#8a6d00;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px}
+.foot{font-size:11px;color:#aaa;margin-top:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div><div class="title">Trap <span>University</span> · Proyección de ventas</div><div class="sub" id="daylabel">—</div></div>
+    <div class="updated" id="updated">cargando…</div>
+  </div>
+  <div class="demo" id="demo" style="display:none"></div>
+  <div class="goal bad" id="goalBanner">
+    <span id="goalNow" style="font-size:22px;font-weight:800">Ventas hoy: —</span>
+    <span id="goalTxt" style="flex:1;text-align:center;font-size:14px">calculando…</span>
+    <span id="goalPct" style="white-space:nowrap"></span>
+  </div>
+  <div class="barlbl"><span>Avance del día (hora Pacífico)</span><span id="daypct">—</span></div>
+  <div class="bar"><div id="daybar"></div></div>
+
+  <div class="section">① Proyección del día</div>
+  <div class="grid">
+    <div class="card"><h3>Tráfico (GA)</h3><div class="big" id="sessProj">—</div><div class="sofar" id="sessSoFar"></div></div>
+    <div class="card"><h3>Conversión</h3><div class="big" id="convVal">—</div><div class="sofar" id="convExp"></div></div>
+    <div class="card"><h3>Órdenes</h3><div class="big" id="ordProj">—</div><div class="sofar" id="ordSoFar"></div><span class="pill flat" id="ordPace">—</span></div>
+    <div class="card"><h3>Revenue</h3><div class="big" id="revProj">—</div><div class="sofar" id="revSoFar"></div><span class="pill flat" id="revPace">—</span></div>
+  </div>
+  <div class="grid g3">
+    <div class="card"><h3>AOV hoy</h3><div class="big" id="aovVal">—</div><div class="sofar" id="aovExp">típico ~$70</div></div>
+    <div class="card"><h3>Checkout hoy</h3><div class="big" id="ckVal">—</div><span class="pill flat" id="ckPill">—</span></div>
+    <div class="card"><h3>Órdenes hoy (exacto Woo)</h3><div class="big" id="ordExact">—</div><div class="sofar">directo de WooCommerce</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>Embudo del día — diagnóstico para la meta de $1.000</h2>
+    <div class="frow"><span>Sesiones (proy.)</span><span class="fv" id="d_sess">—</span><span class="pill flat" id="d_sessP">—</span></div>
+    <div class="frow"><span>Añadir al carrito (proy.)</span><span class="fv" id="d_cart">—</span><span class="pill flat" id="d_cartP">—</span></div>
+    <div class="frow"><span>Checkout (proy.)</span><span class="fv" id="d_ck">—</span><span class="pill flat" id="d_ckP">—</span></div>
+    <div class="frow"><span>Órdenes (proy.)</span><span class="fv" id="d_ord">—</span><span class="pill flat" id="d_ordP">—</span></div>
+    <div class="diag bad" id="d_diag">—</div>
+  </div>
+
+  <div class="section">② Proyección del mes</div>
+  <div class="grid g3">
+    <div class="card"><h3>Proyección mes</h3><div class="big" id="moProj">—</div><span class="pill flat" id="moPill">—</span></div>
+    <div class="card"><h3>MTD (mes a hoy)</h3><div class="big" id="moMtd">—</div><div class="sofar" id="moMtdD"></div></div>
+    <div class="card"><h3>Run-rate necesario</h3><div class="big" id="moRR">—</div><div class="sofar">para igualar el promedio</div></div>
+  </div>
+  <div class="panel"><h2>Patrón del mes</h2><div class="cols">
+    <div>
+      <div class="mrow"><span>MTD</span><b id="m_mtd">—</b></div>
+      <div class="mrow"><span>Proyección cierre</span><b id="m_proj">—</b></div>
+      <div class="mrow"><span>Promedio mensual histórico</span><b>$30.935</b></div>
+      <div class="mrow"><span>Días</span><b id="m_days">—</b></div>
+      <div class="note">Quincena (14–16) y cierre (27–31) venden más; fin de semana −16%.</div>
+    </div>
+    <div class="chartbox sm"><canvas id="domChart"></canvas></div>
+  </div></div>
+
+  <div class="panel"><h2>Ritmo del día y mix de producto</h2><div class="cols">
+    <div class="chartbox"><canvas id="chart"></canvas></div>
+    <div class="chartbox sm"><canvas id="mixChart"></canvas></div>
+  </div>
+  <div class="note">Ventas exactas desde WooCommerce (hora Pacífico). Curva intradía verificada: la venta se concentra en tarde-noche (pico ~17h PT).</div>
+  </div>
+
+  <div class="foot">Trap University · datos: WooCommerce + Klaviyo + GA4 · se actualiza al cargar/recargar la página.</div>
+</div>
+
+<script>
+const money=n=>"$"+Math.round(n).toLocaleString("en-US");
+const $=id=>document.getElementById(id);
+function pill(el,delta,txt){const e=$(el);const p=Math.round(delta*100);if(delta>0.03){e.className="pill up";e.textContent="▲ "+p+"% "+txt;}else if(delta<-0.03){e.className="pill down";e.textContent="▼ "+p+"% "+txt;}else{e.className="pill flat";e.textContent="≈ "+txt;}}
+function statusPill(el,r){const e=$(el);if(r>=1.15){e.className="pill up";e.textContent="bien";}else if(r>=0.85){e.className="pill flat";e.textContent="normal";}else{e.className="pill down";e.textContent="bajo";}}
+let chart,domChart,mixChart;
+function diag(f,aov,goal){const need=goal/aov;if(f.ord>=need)return{cls:"ok",txt:`✅ Proyectas ~${f.ord} órdenes — por encima de las ~${need.toFixed(0)} para $${goal}. Vas en camino.`};
+ const R=[["tráfico",(f.sess||f.bench.sess)/f.bench.sess],["carrito",(f.cart||f.bench.cart)/f.bench.cart],["checkout",f.ck/f.bench.ck],["cierre",f.ord/f.bench.ord]].sort((a,b)=>a[1]-b[1]);const wk=R[0][0];
+ let m={"tráfico":"El freno está arriba: entra menos gente. Empuja tráfico (SMS/campaña) o sube conversión.","carrito":"Llega tráfico pero pocos añaden al carrito. Revisa oferta/precio y página de producto.","checkout":"Se cae antes del checkout. Revisa costos de envío o falta de urgencia.","cierre":"Se inician checkouts pero no cierran. Revisa pago (Authorize.net) o costos sorpresa."}[wk];
+ return{cls:"bad",txt:`⚠️ Proyectas ~${f.ord} órdenes (${money(f.ord*aov)}), corto vs ~${need.toFixed(0)} para $${goal}. ${m}`};}
+
+async function load(){
+ let s;try{s=await(await fetch("/api/data")).json();}catch(e){$("updated").textContent="Error al cargar";return;}
+ if(s.error){$("updated").textContent="Error: "+s.error;return;}
+ const et=s.et,d=s.day,mo=s.month,f=s.funnelDay;
+ const dowN=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+ $("daylabel").textContent=`${dowN[(et.dow+1)%7]} ${et.dateStr} · ${String(et.hour).padStart(2,"0")}:${String(et.min).padStart(2,"0")} PT`;
+ $("updated").textContent="Actualizado "+new Date(s.ts).toLocaleString("es",{hour:"2-digit",minute:"2-digit"});
+ if(!s.sources.woo){$("demo").style.display="block";$("demo").innerHTML="⚙️ Modo demo: falta conectar WooCommerce (variables WOO_URL / WOO_KEY / WOO_SECRET en Render). Las ventas se muestran en 0 hasta configurarlo.";}
+ $("daypct").textContent=Math.round(s.pOrd*100)+"% del día";$("daybar").style.width=(s.pOrd*100)+"%";
+
+ // goal
+ $("goalNow").textContent="Ventas hoy: "+money(d.revToday);
+ $("goalBanner").className="goal "+(d.goalOk?"ok":"bad");
+ $("goalTxt").textContent=(d.goalOk?"✅ Meta $1.000 cubierta":"⚠️ Bajo meta $1.000")+" — proyectado "+money(d.revProj);
+ $("goalPct").textContent=d.goalPct+"% de la meta";
+ // cards
+ $("revProj").textContent=money(d.revProj);$("revSoFar").textContent=money(d.revToday)+" hoy · esp. "+money(d.expRev);pill("revPace",d.revProj/d.expRev-1,"vs esp.");
+ $("ordProj").innerHTML=Math.round(d.ordProj)+" <small>órd</small>";$("ordSoFar").textContent=d.ordToday+" hoy · esp. "+d.expOrd.toFixed(0);pill("ordPace",d.ordProj/d.expOrd-1,"vs esp.");
+ $("ordExact").textContent=d.ordToday;
+ $("aovVal").textContent=d.aov?money(d.aov):"—";
+ if(d.checkoutsToday){$("ckVal").innerHTML=d.checkoutsToday+" → "+d.ordToday;const ab=d.abandonment;const e=$("ckPill");e.className="pill "+(ab>0.7?"down":ab>0.55?"flat":"up");e.textContent=Math.round(ab*100)+"% abandono";}else{$("ckVal").textContent="—";}
+ if(s.traffic){$("sessProj").innerHTML=Math.round(s.traffic.projSessions)+" <small>ses</small>";$("sessSoFar").textContent="~"+Math.round(s.traffic.projUsers)+" usuarios · "+s.traffic.sessionsSoFar+" hasta ahora";$("convVal").innerHTML=(s.traffic.expConv*100).toFixed(2)+"% <small>esp.</small>";$("convExp").textContent="conversión esperada";}
+ else{$("sessProj").innerHTML="<small>GA no conectado</small>";$("convVal").innerHTML="—";}
+ // day funnel
+ $("d_sess").textContent=(f.sess??"GA s/datos")+(f.sess?` (bench ${f.bench.sess})`:"");if(f.sess)statusPill("d_sessP",f.sess/f.bench.sess);
+ $("d_cart").textContent=(f.cart??"GA s/datos")+(f.cart?` (bench ${f.bench.cart})`:"");if(f.cart)statusPill("d_cartP",f.cart/f.bench.cart);
+ $("d_ck").textContent=f.ck+` (bench ${f.bench.ck})`;statusPill("d_ckP",f.ck/f.bench.ck);
+ $("d_ord").textContent=f.ord+` (bench ${f.bench.ord})`;statusPill("d_ordP",f.ord/f.bench.ord);
+ const dg=diag(f,70.07,d.goal);$("d_diag").className="diag "+dg.cls;$("d_diag").textContent=dg.txt;
+ // month
+ $("moProj").textContent=money(mo.projRev);pill("moPill",mo.projRev/mo.avg-1,"vs prom");
+ $("moMtd").textContent=money(mo.mtdRev);$("moMtdD").textContent=mo.mtdOrd+" órdenes · día "+mo.days+"/"+mo.daysInMonth;
+ $("moRR").innerHTML=money(mo.runRate)+" <small>/día</small>";
+ $("m_mtd").textContent=money(mo.mtdRev)+" · "+mo.mtdOrd+" órd";$("m_proj").textContent=money(mo.projRev)+" · "+Math.round(mo.projOrd)+" órd";$("m_days").textContent=mo.days+" / "+mo.daysInMonth;
+ // charts
+ const dom=s.params.dom_factor,labels=[],data=[],colors=[];for(let i=1;i<=mo.daysInMonth;i++){labels.push(i);data.push(dom[i-1]);colors.push(i===et.d?"#7a3ff2":(dom[i-1]>=1.1?"#b98bff":"#e2dcf5"));}
+ if(domChart)domChart.destroy();domChart=new Chart($("domChart"),{type:"bar",data:{labels,datasets:[{data,backgroundColor:colors}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:"Factor por día del mes",font:{size:10}}},scales:{y:{ticks:{callback:v=>v+"x",font:{size:9}}},x:{ticks:{maxTicksLimit:12,font:{size:8}}}}}});
+ if(mixChart)mixChart.destroy();mixChart=new Chart($("mixChart"),{type:"doughnut",data:{labels:s.params.mix.labels,datasets:[{data:s.params.mix.data,backgroundColor:["#7a3ff2","#9a6bf0","#b98bff","#cdaaff","#e0ccff","#efe2ff","#f6f0ff"]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"right",labels:{boxWidth:10,font:{size:9}}}}}});
+ // intraday
+ const oc=[0.036,0.078,0.102,0.123,0.129,0.138,0.144,0.168,0.186,0.210,0.263,0.317,0.377,0.410,0.461,0.515,0.554,0.641,0.719,0.778,0.829,0.877,0.943,1.0];
+ const L=[],exp=[],prj=[];for(let h=0;h<24;h++){L.push(h+"h");exp.push(Math.round(d.expRev*oc[h]));prj.push(Math.round(d.revProj*oc[h]));}
+ const real=L.map((_,h)=>h<=et.hourFloat?Math.round(d.revToday*(oc[Math.min(h,23)]/Math.max(oc[Math.min(Math.floor(et.hourFloat),23)],0.01))):null);
+ if(chart)chart.destroy();chart=new Chart($("chart"),{type:"line",data:{labels:L,datasets:[{label:"Día típico",data:exp,borderColor:"#c9c9d2",borderDash:[5,4],pointRadius:0,borderWidth:2,tension:.3},{label:"Proyección",data:prj,borderColor:"#b98bff",borderDash:[2,3],pointRadius:0,borderWidth:2,tension:.3},{label:"Real",data:real,borderColor:"#7a3ff2",backgroundColor:"rgba(122,63,242,.08)",fill:true,pointRadius:0,borderWidth:3,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:12,font:{size:10}}}},scales:{y:{ticks:{callback:v=>"$"+v}},x:{ticks:{maxTicksLimit:8,font:{size:9}}}}}});
+}
+load();
+</script>
+</body>
+</html>
