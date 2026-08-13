@@ -1,0 +1,33 @@
+# Render Blueprint — servicio web del dashboard.
+# El envío 2x/día a Slack se dispara con un cron externo gratuito (ver README, paso 5).
+services:
+  - type: web
+    name: trapu-proyeccion
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: STORE_TZ
+        value: America/Los_Angeles
+      - key: DAILY_GOAL
+        value: "1000"
+      # --- Rellenar en el panel de Render (Environment) ---
+      - key: WOO_URL          # https://trapuniversity.com
+        sync: false
+      - key: WOO_KEY          # Consumer key (read-only)
+        sync: false
+      - key: WOO_SECRET       # Consumer secret
+        sync: false
+      - key: KLAVIYO_API_KEY  # opcional (checkout)
+        sync: false
+      - key: GA_PROPERTY_ID   # opcional (tráfico) ej. 420616449
+        sync: false
+      - key: GA_SA_JSON       # opcional: JSON de la cuenta de servicio en una línea
+        sync: false
+      - key: SLACK_WEBHOOK_URL # Incoming Webhook del canal
+        sync: false
+      - key: DASHBOARD_URL     # la URL pública de este servicio (para el link en Slack)
+        sync: false
+      - key: CRON_TOKEN        # una palabra secreta para proteger /tasks/slack
+        sync: false
